@@ -35,7 +35,6 @@
         .btn-mic-vi { background: #E8F0FE; color: #1967D2; border: 1px solid #1A73E8; }
         .btn-mic-zh { background: #FFF4E5; color: #C26401; border: 1px solid #FFA000; }
         
-        /* Hiệu ứng khi đang nghe - Nút đỏ lên và có chữ "Xong" */
         .listening { 
             background: #EA4335 !important; 
             color: white !important; 
@@ -50,12 +49,19 @@
             padding: 16px 0; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
         }
 
+        /* Khung kết quả có thêm khu vực chứa nút chức năng */
         .result-wrapper { 
             position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; 
-            padding: 15px; min-height: 80px; display: flex; justify-content: space-between; gap: 10px;
+            padding: 15px; min-height: 80px; display: flex; flex-direction: column; gap: 10px;
         }
-        #translationResult { flex: 1; font-size: 17px; line-height: 1.6; color: #202124; }
-        #copyBtn { border: none; background: none; color: #999; cursor: pointer; padding: 5px; }
+        #translationResult { font-size: 17px; line-height: 1.6; color: #202124; width: 100%; word-break: break-word;}
+        
+        .result-tools { 
+            display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #F0F0F0; padding-top: 10px;
+        }
+        .tool-btn { border: none; background: none; color: #999; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .tool-btn:active { color: #3867D6; }
+        .tool-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
         .status-msg { font-size: 12px; text-align: center; color: #666; margin-top: 5px; }
     </style>
@@ -83,9 +89,14 @@
 
         <div class="result-wrapper">
             <div id="translationResult">---</div>
-            <button id="copyBtn">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-            </button>
+            <div class="result-tools">
+                <button class="tool-btn" id="speakBtn" title="Đọc kết quả">
+                    <svg viewBox="0 0 24 24"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16.02C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>
+                </button>
+                <button class="tool-btn" id="copyBtn" title="Sao chép">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -95,64 +106,38 @@
         const statusMsg = document.getElementById('statusMsg');
         const micViBtn = document.getElementById('micViBtn');
         const micZhBtn = document.getElementById('micZhBtn');
+        const speakBtn = document.getElementById('speakBtn');
         const API_URL = "https://translate-api.lieunguyenhoa8893.workers.dev";
 
         let activeSource = "VI";
         let activeTarget = "ZH";
-        let isListening = false; // Biến theo dõi trạng thái đang nghe
+        let isListening = false;
 
-        // Cấu hình Recognition
+        // 1. Cấu hình Nhận diện giọng nói (STT)
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
-
         if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = false; 
-            recognition.interimResults = true; // Bật để lấy kết quả tạm thời khi đang nói
-
-            recognition.onstart = () => { 
-                isListening = true;
-                statusMsg.innerText = "🔴 Đang nghe... Bấm nút một lần nữa để dừng"; 
-            };
-
-            recognition.onend = () => { 
-                isListening = false;
-                statusMsg.innerText = "Sẵn sàng";
-                resetMicButtons();
-            };
-
+            recognition = new Recognition();
+            recognition.interimResults = true;
+            recognition.onstart = () => { isListening = true; statusMsg.innerText = "🔴 Đang nghe... Bấm lại để dừng"; };
+            recognition.onend = () => { isListening = false; statusMsg.innerText = "Sẵn sàng"; resetMicButtons(); };
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                inputText.value = transcript;
-                
-                // Nếu là kết quả cuối cùng (trình duyệt tự nhận diện xong)
-                if (event.results[0].isFinal) {
-                    translate(activeSource, activeTarget);
-                }
+                inputText.value = event.results[0][0].transcript;
+                if (event.results[0].isFinal) translate(activeSource, activeTarget);
             };
         }
 
-        // Hàm Reset giao diện nút
         function resetMicButtons() {
-            micViBtn.classList.remove('listening');
-            micZhBtn.classList.remove('listening');
+            micViBtn.classList.remove('listening'); micZhBtn.classList.remove('listening');
             micViBtn.querySelector('span').innerText = "🎤 Nói Tiếng Việt";
             micZhBtn.querySelector('span').innerText = "🎤 Nghe Tiếng Trung";
         }
 
-        // Hàm điều khiển Mic (Bật/Tắt chủ động)
         function toggleMic(lang, btn) {
-            if (isListening) {
-                // Nếu đang nghe mà bấm tiếp -> Dừng ngay lập tức
-                recognition.stop(); 
-                isListening = false;
-                // Gọi dịch ngay với những gì đã nghe được
-                translate(activeSource, activeTarget);
-            } else {
-                // Nếu đang rảnh -> Bắt đầu nghe
+            if (isListening) { recognition.stop(); } 
+            else {
                 activeSource = (lang === 'vi-VN') ? "VI" : "ZH";
                 activeTarget = (lang === 'vi-VN') ? "ZH" : "VI";
-                
                 recognition.lang = lang;
                 btn.classList.add('listening');
                 btn.querySelector('span').innerText = "🛑 Bấm để Dừng";
@@ -163,11 +148,10 @@
         micViBtn.onclick = () => toggleMic("vi-VN", micViBtn);
         micZhBtn.onclick = () => toggleMic("zh-CN", micZhBtn);
 
-        // Hàm dịch
+        // 2. Hàm dịch
         async function translate(sLang, tLang) {
             const text = inputText.value.trim();
-            if (!text || text === "") return;
-
+            if (!text) return;
             resultDiv.innerText = '⏳ Đang dịch...';
             try {
                 const response = await fetch(API_URL, {
@@ -177,17 +161,35 @@
                 });
                 const data = await response.json();
                 resultDiv.innerText = data.translation || "Lỗi kết quả";
-            } catch (e) {
-                resultDiv.innerText = "❌ Lỗi kết nối";
-            }
+            } catch (e) { resultDiv.innerText = "❌ Lỗi kết nối"; }
         }
 
-        document.getElementById('translateBtn').onclick = () => translate("VI", "ZH");
-        document.getElementById('clearBtn').onclick = () => {
-            inputText.value = '';
-            resultDiv.innerText = '---';
-            statusMsg.innerText = 'Đã xóa';
+        document.getElementById('translateBtn').onclick = () => {
+            activeTarget = "ZH"; // Mặc định nút dịch to là dịch sang Trung
+            translate("VI", "ZH");
         };
+
+        // 3. TÍNH NĂNG LOA ĐỌC (Text-to-Speech)
+        speakBtn.onclick = () => {
+            const text = resultDiv.innerText;
+            if (text === '---' || text === '⏳ Đang dịch...') return;
+
+            window.speechSynthesis.cancel(); // Dừng các âm thanh cũ
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Tự động chọn giọng dựa trên activeTarget
+            if (activeTarget === "ZH") {
+                utterance.lang = 'zh-CN';
+            } else {
+                utterance.lang = 'vi-VN';
+            }
+            
+            utterance.rate = 0.9; // Tốc độ hơi chậm cho dễ nghe
+            window.speechSynthesis.speak(utterance);
+        };
+
+        // 4. Các tính năng phụ
+        document.getElementById('clearBtn').onclick = () => { inputText.value = ''; resultDiv.innerText = '---'; };
         document.getElementById('copyBtn').onclick = () => {
             navigator.clipboard.writeText(resultDiv.innerText);
             statusMsg.innerText = "Đã copy!";

@@ -70,12 +70,12 @@
 
         <div class="mode-selector">
             <button class="mode-btn active" id="modeAuto" onclick="changeMode('auto')">Auto Detect</button>
-            <button class="mode-btn" id="modePinyin" onclick="changeMode('pinyin')">Pinyin / Trung ➔ Việt</button>
+            <button class="mode-btn" id="modePinyin" onclick="changeMode('pinyin')">Pinyin ➔ Việt</button>
         </div>
 
         <div class="input-wrapper">
             <textarea id="inputText" placeholder="Nhập văn bản..."></textarea>
-            <button class="clear-btn" id="clearBtn" title="Xóa">
+            <button class="clear-btn" id="clearBtn">
                 <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
             </button>
         </div>
@@ -108,7 +108,7 @@
         let currentMode = "auto"; 
         let currentTargetLang = "ZH";
 
-        // --- 1. CHUYỂN ĐỔI CHẾ ĐỘ ---
+        // --- FIX: THAY ĐỔI ATTRIBUTE ĐỂ HIỆN SUGGEST ---
         function changeMode(mode) {
             currentMode = mode;
             document.getElementById('modeAuto').classList.toggle('active', mode === 'auto');
@@ -116,21 +116,27 @@
             
             if (mode === 'pinyin') {
                 currentTargetLang = "VI";
-                inputText.placeholder = "Gõ Pinyin hoặc Tiếng Hán tại đây...";
-                statusMsg.innerText = "Chế độ: Ép dịch sang Tiếng Việt";
+                inputText.placeholder = "Gõ Pinyin tại đây (Bàn phím sẽ hiện gợi ý)...";
+                // Ép bàn phím Samsung hiện gợi ý tiếng Trung
+                inputText.setAttribute('lang', 'zh-Hans');
+                inputText.setAttribute('inputmode', 'text');
+                statusMsg.innerText = "Chế độ: Gõ Pinyin ➔ Dịch Tiếng Việt";
             } else {
                 inputText.placeholder = "Nhập văn bản...";
+                // Trả về mặc định tiếng Việt
+                inputText.setAttribute('lang', 'vi-VN');
+                inputText.removeAttribute('inputmode');
                 autoDetect(); 
             }
+            // Focus lại để bàn phím cập nhật trạng thái mới
+            inputText.blur();
+            setTimeout(() => inputText.focus(), 100);
         }
 
-        // --- 2. TỰ ĐỘNG NHẬN DIỆN (Chỉ chạy khi mode là auto) ---
         function autoDetect() {
             if (currentMode !== "auto") return;
-
             const text = inputText.value.trim();
             if (!text) return;
-
             const chineseRegex = /[\u4e00-\u9fa5]/;
             if (chineseRegex.test(text)) {
                 currentTargetLang = "VI"; 
@@ -142,7 +148,6 @@
         }
         inputText.addEventListener('input', autoDetect);
 
-        // --- 3. MIC & SPEECH RECOGNITION ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         if (SpeechRecognition) {
@@ -179,7 +184,6 @@
         document.getElementById('micViBtn').onclick = () => toggleMic("vi-VN", document.getElementById('micViBtn'));
         document.getElementById('micZhBtn').onclick = () => toggleMic("zh-CN", document.getElementById('micZhBtn'));
 
-        // --- 4. HÀM DỊCH ---
         async function translate() {
             const text = inputText.value.trim();
             if (!text) return;
@@ -196,7 +200,6 @@
         }
         document.getElementById('translateBtn').onclick = translate;
 
-        // --- 5. PHÁT ÂM ---
         document.getElementById('speakBtn').onclick = () => {
             const text = resultDiv.innerText;
             if (text === "---" || text === "⏳ Đang dịch...") return;
@@ -206,7 +209,6 @@
             window.speechSynthesis.speak(msg);
         };
 
-        // --- 6. TIỆN ÍCH ---
         document.getElementById('clearBtn').onclick = () => { inputText.value = ''; resultDiv.innerText = '---'; };
         document.getElementById('copyBtn').onclick = () => {
             navigator.clipboard.writeText(resultDiv.innerText);

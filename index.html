@@ -8,7 +8,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #F7F9FB; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
         .app-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
-        h2 { color: #0F3A5A; margin-bottom: 10px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
+        h2 { color: #0F3A5A; margin-bottom: 5px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
 
         /* Ô NHẬP LIỆU */
         .input-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; }
@@ -30,7 +30,7 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
         /* NÚT DỊCH */
-        .btn-translate { width: 100%; background-color: #3867D6; color: white; border: none; padding: 16px 0; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .btn-translate { width: 100%; background-color: #3867D6; color: white; border: none; padding: 16px 0; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
 
         /* KẾT QUẢ */
         .result-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; padding: 15px; min-height: 80px; display: flex; flex-direction: column; gap: 10px; }
@@ -45,11 +45,11 @@
 <body>
 
     <div class="app-container">
-        <h2>Dịch Thuật Thông Minh</h2>
+        <h2>Việt ⇄ Trung</h2>
 
         <div class="input-wrapper">
-            <textarea id="inputText" placeholder="Nhập Việt hoặc Trung..."></textarea>
-            <button class="clear-btn" id="clearBtn">
+            <textarea id="inputText" placeholder="Nhập tiếng Việt hoặc dán tiếng Trung..."></textarea>
+            <button class="clear-btn" id="clearBtn" title="Xóa tất cả">
                 <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
             </button>
         </div>
@@ -81,45 +81,46 @@
         const API_URL = "https://translate-api.lieunguyenhoa8893.workers.dev";
 
         let isListening = false;
-        let currentTargetLang = "ZH"; // Mặc định là dịch sang Trung
+        let currentTargetLang = "ZH"; // Mặc định đích là Trung
 
-        // --- 1. HÀM TỰ ĐỘNG NHẬN DIỆN NGÔN NGỮ ---
+        // --- 1. TỰ ĐỘNG NHẬN DIỆN NGÔN NGỮ ---
         function autoDetect() {
             const text = inputText.value.trim();
             if (!text) return;
-
-            // Kiểm tra xem có ký tự Trung Quốc không (Unicode range)
+            // Kiểm tra ký tự Trung Quốc
             const chineseRegex = /[\u4e00-\u9fa5]/;
             if (chineseRegex.test(text)) {
-                currentTargetLang = "VI"; // Thấy chữ Trung -> Đích là Việt
-                statusMsg.innerText = "Đã nhận diện: Tiếng Trung ➔ Việt";
+                currentTargetLang = "VI"; // Thấy chữ Trung -> Dịch sang Việt
+                statusMsg.innerText = "Chế độ: Trung ➔ Việt";
             } else {
-                currentTargetLang = "ZH"; // Ngược lại -> Đích là Trung
-                statusMsg.innerText = "Đã nhận diện: Tiếng Việt ➔ Trung";
+                currentTargetLang = "ZH"; // Không thấy chữ Trung -> Dịch sang Trung
+                statusMsg.innerText = "Chế độ: Việt ➔ Trung";
             }
         }
-
-        // Gọi nhận diện ngay khi người dùng gõ hoặc dán văn bản
         inputText.addEventListener('input', autoDetect);
 
-        // --- 2. NHẬN DIỆN GIỌNG NÓI ---
+        // --- 2. NHẬN DIỆN GIỌNG NÓI (FIXED) ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
+        
         if (SpeechRecognition) {
-            recognition = new Recognition();
+            recognition = new SpeechRecognition(); // Đã sửa tên biến ở đây
             recognition.interimResults = true;
-            recognition.onstart = () => { isListening = true; };
+            recognition.onstart = () => { isListening = true; statusMsg.innerText = "🔴 Đang nghe... Bấm nút để dừng"; };
             recognition.onend = () => { isListening = false; resetMicButtons(); };
             recognition.onresult = (event) => {
-                inputText.value = event.results[0][0].transcript;
-                autoDetect(); // Nhận diện lại sau khi nói
+                const transcript = event.results[0][0].transcript;
+                inputText.value = transcript;
+                autoDetect(); 
                 if (event.results[0].isFinal) translate();
             };
         }
 
         function toggleMic(lang, btn) {
-            if (isListening) { recognition.stop(); } 
-            else {
+            if (!recognition) { alert("Trình duyệt không hỗ trợ Mic"); return; }
+            if (isListening) { 
+                recognition.stop(); 
+            } else {
                 recognition.lang = lang;
                 btn.classList.add('listening');
                 btn.querySelector('span').innerText = "🛑 Dừng";
@@ -131,6 +132,7 @@
             micViBtn.classList.remove('listening'); micZhBtn.classList.remove('listening');
             micViBtn.querySelector('span').innerText = "🎤 Nói Tiếng Việt";
             micZhBtn.querySelector('span').innerText = "🎤 Nghe Tiếng Trung";
+            statusMsg.innerText = "Sẵn sàng";
         }
 
         micViBtn.onclick = () => toggleMic("vi-VN", micViBtn);
@@ -146,12 +148,11 @@
                 const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    // Gửi target_lang động dựa trên auto-detect
                     body: JSON.stringify({ text, target_lang: currentTargetLang })
                 });
                 const data = await response.json();
                 resultDiv.innerText = data.translation || "Lỗi kết quả";
-            } catch (e) { resultDiv.innerText = "❌ Lỗi kết nối"; }
+            } catch (e) { resultDiv.innerText = "❌ Lỗi kết nối API"; }
         }
 
         document.getElementById('translateBtn').onclick = translate;
@@ -166,11 +167,9 @@
             window.speechSynthesis.speak(msg);
         };
 
-        // --- 5. CÁC TÍNH NĂNG KHÁC ---
+        // --- 5. TIỆN ÍCH ---
         document.getElementById('clearBtn').onclick = () => { 
-            inputText.value = ''; 
-            resultDiv.innerText = '---'; 
-            statusMsg.innerText = "Sẵn sàng";
+            inputText.value = ''; resultDiv.innerText = '---'; statusMsg.innerText = "Đã xóa"; 
         };
         document.getElementById('copyBtn').onclick = () => {
             navigator.clipboard.writeText(resultDiv.innerText);

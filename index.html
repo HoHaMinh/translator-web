@@ -5,27 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dịch Thuật Thông Minh</title>
     <style>
-        /* GIỮ NGUYÊN STYLE CỦA BẠN */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #F7F9FB; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
         .app-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
-        h2 { color: #0F3A5A; margin-bottom: 10px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
+        
+        h2 { color: #0F3A5A; margin-bottom: 5px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
+
+        /* THANH CHỌN GIỌNG ĐỌC */
+        .voice-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        .voice-option {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #E0E0E0;
+            background: white;
+            color: #666;
+            transition: 0.2s;
+        }
+        .voice-option.active {
+            background: #3867D6;
+            color: white;
+            border-color: #3867D6;
+        }
+
         .input-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; }
         textarea { width: 100%; height: 120px; padding: 15px; padding-right: 45px; border: none; border-radius: 12px; font-size: 16px; line-height: 1.5; resize: none; outline: none; }
+        
         .clear-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer; color: #999; padding: 5px; }
         .clear-btn svg { width: 22px; height: 22px; fill: currentColor; }
+        
         .action-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn { border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
         .btn-mic-vi { background: #E8F0FE; color: #1967D2; border: 1px solid #1A73E8; }
         .btn-mic-zh { background: #FFF4E5; color: #C26401; border: 1px solid #FFA000; }
+        
         .listening { background: #EA4335 !important; color: white !important; border-color: #EA4335 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        
         .btn-translate { width: 100%; background-color: #3867D6; color: white; border: none; padding: 16px 0; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        
         .result-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; padding: 15px; min-height: 80px; display: flex; flex-direction: column; gap: 10px; }
         #translationResult { font-size: 17px; line-height: 1.6; color: #202124; width: 100%; }
+        
         .result-tools { display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #F0F0F0; padding-top: 8px; }
         .tool-btn { border: none; background: none; color: #999; cursor: pointer; padding: 5px; }
         .tool-btn svg { width: 22px; height: 22px; fill: currentColor; }
+        
         .status-msg { font-size: 12px; text-align: center; color: #666; margin-top: 5px; }
     </style>
 </head>
@@ -33,6 +65,11 @@
 
     <div class="app-container">
         <h2>Việt ⇄ Trung</h2>
+
+        <div class="voice-selector">
+            <div class="voice-option active" id="voiceFemale" onclick="setGender('female')">Giọng Nữ</div>
+            <div class="voice-option" id="voiceMale" onclick="setGender('male')">Giọng Nam</div>
+        </div>
 
         <div class="input-wrapper">
             <textarea id="inputText" placeholder="Nhập văn bản hoặc bấm Mic để nói..."></textarea>
@@ -75,8 +112,17 @@
         let activeSource = "VI";
         let activeTarget = "ZH";
         let isListening = false;
+        let selectedGender = 'female'; // Mặc định là nữ
 
-        // 1. Nhận diện giọng nói (STT)
+        // 1. CHỌN GIỚI TÍNH GIỌNG ĐỌC
+        function setGender(gender) {
+            selectedGender = gender;
+            document.getElementById('voiceFemale').classList.toggle('active', gender === 'female');
+            document.getElementById('voiceMale').classList.toggle('active', gender === 'male');
+            statusMsg.innerText = "Đã chọn giọng " + (gender === 'female' ? "Nữ" : "Nam");
+        }
+
+        // 2. Nhận diện giọng nói (STT)
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         if (SpeechRecognition) {
@@ -111,7 +157,6 @@
         micViBtn.onclick = () => toggleMic("vi-VN", micViBtn);
         micZhBtn.onclick = () => toggleMic("zh-CN", micZhBtn);
 
-        // 2. Hàm dịch
         async function translate(sLang, tLang) {
             const text = inputText.value.trim();
             if (!text) return;
@@ -129,45 +174,40 @@
 
         document.getElementById('translateBtn').onclick = () => { activeTarget = "ZH"; translate("VI", "ZH"); };
 
-        // 3. SỬA LỖI LOA (TTS) - PHẦN QUAN TRỌNG NHẤT
+        // 3. PHÁT ÂM (TTS) CÓ CHỌN GIỌNG NAM/NỮ
         function speakResult() {
             const text = resultDiv.innerText;
             if (!text || text === "---" || text === "⏳ Đang dịch...") return;
 
-            // Xóa mọi hàng đợi âm thanh cũ
             window.speechSynthesis.cancel();
-
             const msg = new SpeechSynthesisUtterance(text);
-            
-            // Ép ngôn ngữ dựa trên activeTarget
             msg.lang = (activeTarget === "ZH") ? 'zh-CN' : 'vi-VN';
-            msg.volume = 1;
-            msg.rate = 1;
-
-            // Một số trình duyệt mobile cần lấy voices trước
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                const targetVoice = voices.find(v => v.lang.includes(msg.lang));
-                if (targetVoice) msg.voice = targetVoice;
-            }
-
-            // Thực hiện phát âm
-            window.speechSynthesis.speak(msg);
             
-            // Log trạng thái để kiểm tra
-            statusMsg.innerText = "🔊 Đang phát âm...";
-            msg.onend = () => statusMsg.innerText = "Sẵn sàng";
+            const voices = window.speechSynthesis.getVoices();
+            
+            // LOGIC TÌM GIỌNG:
+            // Thường tên giọng Nam có chứa: Male, David, Mark, Kangkang, HoaiBao, Mạnh
+            // Thường tên giọng Nữ có chứa: Female, Zira, Huihui, Lan, Linh
+            const targetVoice = voices.find(v => {
+                const name = v.name.toLowerCase();
+                const isLangMatch = v.lang.includes(msg.lang);
+                if (!isLangMatch) return false;
+
+                if (selectedGender === 'male') {
+                    return name.includes('male') || name.includes('david') || name.includes('mark') || name.includes('kangkang') || name.includes('hoai') || name.includes('manh');
+                } else {
+                    return name.includes('female') || name.includes('zira') || name.includes('huihui') || name.includes('lan') || name.includes('linh') || name.includes('xiaoxiao');
+                }
+            });
+
+            if (targetVoice) msg.voice = targetVoice;
+            msg.rate = 1;
+            window.speechSynthesis.speak(msg);
         }
 
         speakBtn.onclick = speakResult;
-
-        // Kích hoạt engine giọng nói khi load trang (Fix cho Chrome Android)
         window.speechSynthesis.getVoices();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = speechSynthesis.getVoices;
-        }
 
-        // 4. Các tính năng phụ
         document.getElementById('clearBtn').onclick = () => { inputText.value = ''; resultDiv.innerText = '---'; };
         document.getElementById('copyBtn').onclick = () => {
             navigator.clipboard.writeText(resultDiv.innerText);

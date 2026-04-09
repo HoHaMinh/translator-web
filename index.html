@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dịch Thuật Thông Minh</title>
     <style>
-        /* ĐỒNG NHẤT FONT CHỮ THEO Ý BẠN (Sử dụng font của ô nhập tay cho toàn bộ) */
         * { 
             box-sizing: border-box; margin: 0; padding: 0; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -16,21 +15,18 @@
 
         h2 { color: #0F3A5A; margin-bottom: 10px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
 
-        /* Ô nhập liệu */
         .input-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; }
         textarea { 
             width: 100%; height: 120px; padding: 15px; padding-right: 45px; 
             border: none; border-radius: 12px; font-size: 16px; line-height: 1.5; resize: none; outline: none;
         }
 
-        /* NÚT THÙNG RÁC */
         .clear-btn { 
             position: absolute; top: 10px; right: 10px; background: none; border: none; 
             cursor: pointer; color: #999; padding: 5px; 
         }
         .clear-btn svg { width: 22px; height: 22px; fill: currentColor; }
 
-        /* Nút Mic */
         .action-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn { 
             border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; 
@@ -38,18 +34,22 @@
         }
         .btn-mic-vi { background: #E8F0FE; color: #1967D2; border: 1px solid #1A73E8; }
         .btn-mic-zh { background: #FFF4E5; color: #C26401; border: 1px solid #FFA000; }
-        .btn:active { opacity: 0.7; transform: scale(0.98); }
-        .listening { background: #EA4335 !important; color: white !important; animation: pulse 1.5s infinite; }
         
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        /* Hiệu ứng khi đang nghe - Nút đỏ lên và có chữ "Xong" */
+        .listening { 
+            background: #EA4335 !important; 
+            color: white !important; 
+            border-color: #EA4335 !important;
+            animation: pulse 1.5s infinite; 
+        }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* Nút Dịch */
         .btn-translate { 
             width: 100%; background-color: #3867D6; color: white; border: none; 
             padding: 16px 0; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
         }
 
-        /* Kết quả */
         .result-wrapper { 
             position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; 
             padding: 15px; min-height: 80px; display: flex; justify-content: space-between; gap: 10px;
@@ -67,14 +67,14 @@
 
         <div class="input-wrapper">
             <textarea id="inputText" placeholder="Nhập văn bản hoặc bấm Mic để nói..."></textarea>
-            <button class="clear-btn" id="clearBtn" title="Xóa tất cả">
+            <button class="clear-btn" id="clearBtn">
                 <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
             </button>
         </div>
 
         <div class="action-bars">
-            <button class="btn btn-mic-vi" id="micViBtn">🎤 Nói Tiếng Việt</button>
-            <button class="btn btn-mic-zh" id="micZhBtn">🎤 Nghe Tiếng Trung</button>
+            <button class="btn btn-mic-vi" id="micViBtn"><span>🎤 Nói Tiếng Việt</span></button>
+            <button class="btn btn-mic-zh" id="micZhBtn"><span>🎤 Nghe Tiếng Trung</span></button>
         </div>
 
         <button class="btn-translate" id="translateBtn">DỊCH NGAY</button>
@@ -93,65 +93,87 @@
         const inputText = document.getElementById('inputText');
         const resultDiv = document.getElementById('translationResult');
         const statusMsg = document.getElementById('statusMsg');
+        const micViBtn = document.getElementById('micViBtn');
+        const micZhBtn = document.getElementById('micZhBtn');
         const API_URL = "https://translate-api.lieunguyenhoa8893.workers.dev";
 
         let activeSource = "VI";
         let activeTarget = "ZH";
+        let isListening = false; // Biến theo dõi trạng thái đang nghe
 
-        // 1. Nhận diện giọng nói (STT) - GIỮ NGUYÊN LOGIC CŨ
+        // Cấu hình Recognition
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.continuous = false; 
+            recognition.interimResults = true; // Bật để lấy kết quả tạm thời khi đang nói
 
-            recognition.onstart = () => { statusMsg.innerText = "🔴 Đang nghe..."; };
-            recognition.onend = () => { 
-                statusMsg.innerText = "Sẵn sàng";
-                document.querySelectorAll('.btn').forEach(b => b.classList.remove('listening'));
+            recognition.onstart = () => { 
+                isListening = true;
+                statusMsg.innerText = "🔴 Đang nghe... Bấm nút một lần nữa để dừng"; 
             };
+
+            recognition.onend = () => { 
+                isListening = false;
+                statusMsg.innerText = "Sẵn sàng";
+                resetMicButtons();
+            };
+
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 inputText.value = transcript;
-                translate(activeSource, activeTarget); // Tự động dịch sau khi nói
+                
+                // Nếu là kết quả cuối cùng (trình duyệt tự nhận diện xong)
+                if (event.results[0].isFinal) {
+                    translate(activeSource, activeTarget);
+                }
             };
         }
 
-        function startListening(lang, btnId) {
-            if (!recognition) return;
-            recognition.lang = lang;
-            document.getElementById(btnId).classList.add('listening');
-            recognition.start();
+        // Hàm Reset giao diện nút
+        function resetMicButtons() {
+            micViBtn.classList.remove('listening');
+            micZhBtn.classList.remove('listening');
+            micViBtn.querySelector('span').innerText = "🎤 Nói Tiếng Việt";
+            micZhBtn.querySelector('span').innerText = "🎤 Nghe Tiếng Trung";
         }
 
-        // Gán sự kiện cho các nút Mic
-        document.getElementById('micViBtn').onclick = () => {
-            activeSource = "VI"; activeTarget = "ZH";
-            startListening("vi-VN", 'micViBtn');
-        };
+        // Hàm điều khiển Mic (Bật/Tắt chủ động)
+        function toggleMic(lang, btn) {
+            if (isListening) {
+                // Nếu đang nghe mà bấm tiếp -> Dừng ngay lập tức
+                recognition.stop(); 
+                isListening = false;
+                // Gọi dịch ngay với những gì đã nghe được
+                translate(activeSource, activeTarget);
+            } else {
+                // Nếu đang rảnh -> Bắt đầu nghe
+                activeSource = (lang === 'vi-VN') ? "VI" : "ZH";
+                activeTarget = (lang === 'vi-VN') ? "ZH" : "VI";
+                
+                recognition.lang = lang;
+                btn.classList.add('listening');
+                btn.querySelector('span').innerText = "🛑 Bấm để Dừng";
+                recognition.start();
+            }
+        }
 
-        document.getElementById('micZhBtn').onclick = () => {
-            activeSource = "ZH"; activeTarget = "VI";
-            startListening("zh-CN", 'micZhBtn');
-        };
+        micViBtn.onclick = () => toggleMic("vi-VN", micViBtn);
+        micZhBtn.onclick = () => toggleMic("zh-CN", micZhBtn);
 
-        // 2. Hàm dịch 2 chiều
+        // Hàm dịch
         async function translate(sLang, tLang) {
             const text = inputText.value.trim();
-            if (!text) return;
+            if (!text || text === "") return;
 
             resultDiv.innerText = '⏳ Đang dịch...';
             try {
                 const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        text: text,
-                        source_lang: sLang,
-                        target_lang: tLang
-                    })
+                    body: JSON.stringify({ text, source_lang: sLang, target_lang: tLang })
                 });
                 const data = await response.json();
                 resultDiv.innerText = data.translation || "Lỗi kết quả";
@@ -161,15 +183,11 @@
         }
 
         document.getElementById('translateBtn').onclick = () => translate("VI", "ZH");
-
-        // 3. Xóa tất cả (Thùng rác)
         document.getElementById('clearBtn').onclick = () => {
             inputText.value = '';
             resultDiv.innerText = '---';
             statusMsg.innerText = 'Đã xóa';
         };
-
-        // 4. Copy
         document.getElementById('copyBtn').onclick = () => {
             navigator.clipboard.writeText(resultDiv.innerText);
             statusMsg.innerText = "Đã copy!";

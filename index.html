@@ -8,71 +8,47 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #F7F9FB; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
         .app-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; }
-        
-        h2 { color: #0F3A5A; margin-bottom: 5px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
+        h2 { color: #0F3A5A; margin-bottom: 10px; font-weight: 600; font-size: 20px; text-transform: uppercase; text-align: center; }
 
-        /* THANH CHỌN GIỌNG ĐỌC */
-        .voice-selector {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 5px;
-        }
-        .voice-option {
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid #E0E0E0;
-            background: white;
-            color: #666;
-            transition: 0.2s;
-        }
-        .voice-option.active {
-            background: #3867D6;
-            color: white;
-            border-color: #3867D6;
-        }
-
+        /* Ô NHẬP LIỆU */
         .input-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; }
-        textarea { width: 100%; height: 120px; padding: 15px; padding-right: 45px; border: none; border-radius: 12px; font-size: 16px; line-height: 1.5; resize: none; outline: none; }
-        
+        textarea { 
+            width: 100%; height: 140px; padding: 15px; padding-right: 45px; 
+            border: none; border-radius: 12px; font-size: 16px; line-height: 1.5; resize: none; outline: none;
+        }
+
+        /* NÚT THÙNG RÁC */
         .clear-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer; color: #999; padding: 5px; }
         .clear-btn svg { width: 22px; height: 22px; fill: currentColor; }
-        
+
+        /* CỤM NÚT MIC */
         .action-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn { border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
         .btn-mic-vi { background: #E8F0FE; color: #1967D2; border: 1px solid #1A73E8; }
         .btn-mic-zh { background: #FFF4E5; color: #C26401; border: 1px solid #FFA000; }
-        
-        .listening { background: #EA4335 !important; color: white !important; border-color: #EA4335 !important; animation: pulse 1.5s infinite; }
+        .listening { background: #EA4335 !important; color: white !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        
+
+        /* NÚT DỊCH */
         .btn-translate { width: 100%; background-color: #3867D6; color: white; border: none; padding: 16px 0; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        
+
+        /* KẾT QUẢ */
         .result-wrapper { position: relative; background: white; border-radius: 12px; border: 1px solid #E0E0E0; padding: 15px; min-height: 80px; display: flex; flex-direction: column; gap: 10px; }
-        #translationResult { font-size: 17px; line-height: 1.6; color: #202124; width: 100%; }
-        
+        #translationResult { font-size: 17px; line-height: 1.6; color: #202124; width: 100%; word-wrap: break-word; }
         .result-tools { display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #F0F0F0; padding-top: 8px; }
         .tool-btn { border: none; background: none; color: #999; cursor: pointer; padding: 5px; }
         .tool-btn svg { width: 22px; height: 22px; fill: currentColor; }
-        
+
         .status-msg { font-size: 12px; text-align: center; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <h2>Việt ⇄ Trung</h2>
-
-        <div class="voice-selector">
-            <div class="voice-option active" id="voiceFemale" onclick="setGender('female')">Giọng Nữ</div>
-            <div class="voice-option" id="voiceMale" onclick="setGender('male')">Giọng Nam</div>
-        </div>
+        <h2>Dịch Thuật Thông Minh</h2>
 
         <div class="input-wrapper">
-            <textarea id="inputText" placeholder="Nhập văn bản hoặc bấm Mic để nói..."></textarea>
+            <textarea id="inputText" placeholder="Nhập Việt hoặc Trung..."></textarea>
             <button class="clear-btn" id="clearBtn">
                 <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
             </button>
@@ -90,12 +66,8 @@
         <div class="result-wrapper">
             <div id="translationResult">---</div>
             <div class="result-tools">
-                <button class="tool-btn" id="speakBtn">
-                    <svg viewBox="0 0 24 24"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16.02C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>
-                </button>
-                <button class="tool-btn" id="copyBtn">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                </button>
+                <button class="tool-btn" id="speakBtn"><svg viewBox="0 0 24 24"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16.02C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg></button>
+                <button class="tool-btn" id="copyBtn"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
             </div>
         </div>
     </div>
@@ -106,34 +78,53 @@
         const statusMsg = document.getElementById('statusMsg');
         const micViBtn = document.getElementById('micViBtn');
         const micZhBtn = document.getElementById('micZhBtn');
-        const speakBtn = document.getElementById('speakBtn');
         const API_URL = "https://translate-api.lieunguyenhoa8893.workers.dev";
 
-        let activeSource = "VI";
-        let activeTarget = "ZH";
         let isListening = false;
-        let selectedGender = 'female'; // Mặc định là nữ
+        let currentTargetLang = "ZH"; // Mặc định là dịch sang Trung
 
-        // 1. CHỌN GIỚI TÍNH GIỌNG ĐỌC
-        function setGender(gender) {
-            selectedGender = gender;
-            document.getElementById('voiceFemale').classList.toggle('active', gender === 'female');
-            document.getElementById('voiceMale').classList.toggle('active', gender === 'male');
-            statusMsg.innerText = "Đã chọn giọng " + (gender === 'female' ? "Nữ" : "Nam");
+        // --- 1. HÀM TỰ ĐỘNG NHẬN DIỆN NGÔN NGỮ ---
+        function autoDetect() {
+            const text = inputText.value.trim();
+            if (!text) return;
+
+            // Kiểm tra xem có ký tự Trung Quốc không (Unicode range)
+            const chineseRegex = /[\u4e00-\u9fa5]/;
+            if (chineseRegex.test(text)) {
+                currentTargetLang = "VI"; // Thấy chữ Trung -> Đích là Việt
+                statusMsg.innerText = "Đã nhận diện: Tiếng Trung ➔ Việt";
+            } else {
+                currentTargetLang = "ZH"; // Ngược lại -> Đích là Trung
+                statusMsg.innerText = "Đã nhận diện: Tiếng Việt ➔ Trung";
+            }
         }
 
-        // 2. Nhận diện giọng nói (STT)
+        // Gọi nhận diện ngay khi người dùng gõ hoặc dán văn bản
+        inputText.addEventListener('input', autoDetect);
+
+        // --- 2. NHẬN DIỆN GIỌNG NÓI ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
+            recognition = new Recognition();
             recognition.interimResults = true;
-            recognition.onstart = () => { isListening = true; statusMsg.innerText = "🔴 Đang nghe..."; };
-            recognition.onend = () => { isListening = false; statusMsg.innerText = "Sẵn sàng"; resetMicButtons(); };
+            recognition.onstart = () => { isListening = true; };
+            recognition.onend = () => { isListening = false; resetMicButtons(); };
             recognition.onresult = (event) => {
                 inputText.value = event.results[0][0].transcript;
-                if (event.results[0].isFinal) translate(activeSource, activeTarget);
+                autoDetect(); // Nhận diện lại sau khi nói
+                if (event.results[0].isFinal) translate();
             };
+        }
+
+        function toggleMic(lang, btn) {
+            if (isListening) { recognition.stop(); } 
+            else {
+                recognition.lang = lang;
+                btn.classList.add('listening');
+                btn.querySelector('span').innerText = "🛑 Dừng";
+                recognition.start();
+            }
         }
 
         function resetMicButtons() {
@@ -142,73 +133,45 @@
             micZhBtn.querySelector('span').innerText = "🎤 Nghe Tiếng Trung";
         }
 
-        function toggleMic(lang, btn) {
-            if (isListening) { recognition.stop(); } 
-            else {
-                activeSource = (lang === 'vi-VN') ? "VI" : "ZH";
-                activeTarget = (lang === 'vi-VN') ? "ZH" : "VI";
-                recognition.lang = lang;
-                btn.classList.add('listening');
-                btn.querySelector('span').innerText = "🛑 Dừng";
-                recognition.start();
-            }
-        }
-
         micViBtn.onclick = () => toggleMic("vi-VN", micViBtn);
         micZhBtn.onclick = () => toggleMic("zh-CN", micZhBtn);
 
-        async function translate(sLang, tLang) {
+        // --- 3. HÀM DỊCH ---
+        async function translate() {
             const text = inputText.value.trim();
             if (!text) return;
+            
             resultDiv.innerText = '⏳ Đang dịch...';
             try {
                 const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text, source_lang: sLang, target_lang: tLang })
+                    // Gửi target_lang động dựa trên auto-detect
+                    body: JSON.stringify({ text, target_lang: currentTargetLang })
                 });
                 const data = await response.json();
                 resultDiv.innerText = data.translation || "Lỗi kết quả";
             } catch (e) { resultDiv.innerText = "❌ Lỗi kết nối"; }
         }
 
-        document.getElementById('translateBtn').onclick = () => { activeTarget = "ZH"; translate("VI", "ZH"); };
+        document.getElementById('translateBtn').onclick = translate;
 
-        // 3. PHÁT ÂM (TTS) CÓ CHỌN GIỌNG NAM/NỮ
-        function speakResult() {
+        // --- 4. PHÁT ÂM ---
+        document.getElementById('speakBtn').onclick = () => {
             const text = resultDiv.innerText;
-            if (!text || text === "---" || text === "⏳ Đang dịch...") return;
-
+            if (text === "---" || text === "⏳ Đang dịch...") return;
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = (activeTarget === "ZH") ? 'zh-CN' : 'vi-VN';
-            
-            const voices = window.speechSynthesis.getVoices();
-            
-            // LOGIC TÌM GIỌNG:
-            // Thường tên giọng Nam có chứa: Male, David, Mark, Kangkang, HoaiBao, Mạnh
-            // Thường tên giọng Nữ có chứa: Female, Zira, Huihui, Lan, Linh
-            const targetVoice = voices.find(v => {
-                const name = v.name.toLowerCase();
-                const isLangMatch = v.lang.includes(msg.lang);
-                if (!isLangMatch) return false;
-
-                if (selectedGender === 'male') {
-                    return name.includes('male') || name.includes('david') || name.includes('mark') || name.includes('kangkang') || name.includes('hoai') || name.includes('manh');
-                } else {
-                    return name.includes('female') || name.includes('zira') || name.includes('huihui') || name.includes('lan') || name.includes('linh') || name.includes('xiaoxiao');
-                }
-            });
-
-            if (targetVoice) msg.voice = targetVoice;
-            msg.rate = 1;
+            msg.lang = (currentTargetLang === "ZH") ? 'zh-CN' : 'vi-VN';
             window.speechSynthesis.speak(msg);
-        }
+        };
 
-        speakBtn.onclick = speakResult;
-        window.speechSynthesis.getVoices();
-
-        document.getElementById('clearBtn').onclick = () => { inputText.value = ''; resultDiv.innerText = '---'; };
+        // --- 5. CÁC TÍNH NĂNG KHÁC ---
+        document.getElementById('clearBtn').onclick = () => { 
+            inputText.value = ''; 
+            resultDiv.innerText = '---'; 
+            statusMsg.innerText = "Sẵn sàng";
+        };
         document.getElementById('copyBtn').onclick = () => {
             navigator.clipboard.writeText(resultDiv.innerText);
             statusMsg.innerText = "Đã copy!";
